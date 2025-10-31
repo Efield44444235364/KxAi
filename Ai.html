@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Kawnew AI: Advanced Ambient Chat</title>
+  <style>
+    :root { 
+      /* Advanced Ambient Dark Theme (Purple Focus) */
+      --color-bg-deep: #0A0A0F; /* Near black background */
+      --color-text-main: #E2E6F0; 
+      --color-glass-base: rgba(20, 20, 30, 0.7); /* Slightly darker glass base */
+      --color-border-subtle: rgba(255, 255, 255, 0.12); 
+      
+      /* Accent Colors (Deep Purple) */
+      --color-accent-flow: #6D28D9; /* Button/Main Accent */
+      --color-accent-user: #8B5CF6; /* User Bubble Accent */
+      
+      /* Blob Colors for Ambient */
+      --blob-a: #8B5CF6; /* Light Purple Blob */
+      --blob-b: #6D28D9; /* Deep Purple Blob */
+      --blob-c: #A78BFA; /* Lighter Purple Blob */
+      
+      /* Glassmorphism Blur Strength */
+      --blur-header: 30px;
+      --blur-message: 16px;
+      --blur-input: 30px;
+    }
+
+    /* 🌌 Background and Ambient Layer */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--color-text-main);
+      background: var(--color-bg-deep); 
+      /* Main background gradient - Visible and deep */
+      background: radial-gradient(1200px 800px at 20% 20%, #3b0d6d, transparent 60%),
+                  radial-gradient(1200px 800px at 80% 70%, #5b21b6, transparent 60%),
+                  linear-gradient(180deg, var(--color-bg-deep), #1A0F2E);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      filter: blur(15px);
+      animation: reveal 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      transition: background-color 0.5s ease, color 0.5s ease;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Ambient Blur Container */
+    .ambain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      /* Combine blur and saturate for vibrant, flowing light */
+      filter: blur(80px) saturate(150%);
+      mix-blend-mode: screen; /* ทำให้แสงดูสว่างเมื่อทับซ้อนกัน */
+      opacity: 0.8;
+    }
+
+    /* visible blobs — มีขนาด สี และ animation ต่างกัน */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.75;
+      pointer-events: none;
+      /* Remove inner blur from blob itself, rely on .ambain container blur */
+    }
+
+    .blob.one {
+      width: 600px; height: 600px;
+      left: -10vmax; top: -6vmax;
+      background: radial-gradient(circle at 30% 30%, var(--blob-a), transparent 60%);
+      animation: floatRandom 6s ease-in-out infinite alternate;
+    }
+    .blob.two {
+      width: 520px; height: 520px;
+      right: -8vmax; top: 30vh;
+      background: radial-gradient(circle at 70% 30%, var(--blob-b), transparent 60%);
+      animation: floatRandom2 10s ease-in-out infinite alternate;
+    }
+    .blob.three {
+      width: 700px; height: 700px;
+      left: 20vw; bottom: -12vmax;
+      background: radial-gradient(circle at 50% 50%, var(--blob-c), transparent 65%);
+      animation: floatRandom3 11s ease-in-out infinite alternate;
+    }
+
+    /* Keyframes from user's example, slightly adjusted timing */
+    @keyframes floatRandom {
+      0%   { transform: translate(-10%, -5%) scale(1); }
+      25%  { transform: translate(20%, 10%) scale(1.15); }
+      50%  { transform: translate(-15%, 25%) scale(0.95); }
+      75%  { transform: translate(10%, -20%) scale(1.1); }
+      100% { transform: translate(-10%, -5%) scale(1); }
+    }
+    @keyframes floatRandom2 {
+      0%   { transform: translate(5%, -8%) scale(1); }
+      25%  { transform: translate(-25%, 12%) scale(1.1); }
+      50%  { transform: translate(18%, 20%) scale(0.92); }
+      75%  { transform: translate(-15%, -12%) scale(1.05); }
+      100% { transform: translate(5%, -8%) scale(1); }
+    }
+    @keyframes floatRandom3 {
+      0%   { transform: translate(-6%, 10%) scale(1); }
+      25%  { transform: translate(30%, -8%) scale(1.08); }
+      50%  { transform: translate(-20%, 15%) scale(1.15); }
+      75%  { transform: translate(10%, -25%) scale(0.9); }
+      100% { transform: translate(-6%, 10%) scale(1); }
+    }
+
+    .app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      z-index: 1; /* Keep content above ambient layer */
+      position: relative; /* Ensure content stacks above blobs */
+    }
+
+    /* 💎 Header: Glass with Depth */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 18px 20px;
+      backdrop-filter: blur(var(--blur-header)) saturate(150%);
+      -webkit-backdrop-filter: blur(var(--blur-header)) saturate(150%);
+      background: var(--color-glass-base); /* Darker glass to contrast the background */
+      border-bottom: 1px solid var(--color-border-subtle);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4); 
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .title strong {
+        font-size: 20px;
+        color: white;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: 0.65;
+    }
+
+    /* Chat list */
+    .chat {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px 16px 108px; 
+    }
+
+    /* 💬 Soft Bubbles */
+    .msg {
+      padding: 16px 22px;
+      border-radius: 26px; 
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      backdrop-filter: blur(var(--blur-message)) saturate(150%);
+      -webkit-backdrop-filter: blur(var(--blur-message)) saturate(150%);
+      background: var(--color-glass-base); 
+      border: 1px solid var(--color-border-subtle);
+      color: var(--color-text-main);
+      max-width: 90%; 
+      opacity: 0;
+      transform: translateY(15px);
+      animation: bubbleIn 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .msg.user {
+      align-self: flex-end;
+      /* User Accent Purple */
+      background: rgba(139, 92, 246, 0.2); 
+      border: 1px solid rgba(139, 92, 246, 0.5);
+    }
+    .msg.ai {
+      align-self: flex-start;
+      border-top-left-radius: 8px; 
+      animation-delay: 0.05s; 
+    }
+
+    /* ⌨️ Input Bar: Clean Glass */
+    .input-bar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+      backdrop-filter: blur(var(--blur-input)) saturate(150%);
+      -webkit-backdrop-filter: blur(var(--blur-input)) saturate(150%);
+      background: rgba(10, 10, 15, 0.75); /* Match Header base */
+      border-top: 1px solid var(--color-border-subtle);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px; 
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Textarea: Minimalist, Soft */
+    textarea {
+      width: 100%;
+      resize: none;
+      min-height: 52px; 
+      max-height: 180px;
+      padding: 14px 20px;
+      border-radius: 18px; 
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05); 
+      color: var(--color-text-main);
+      outline: none;
+      transition: border-color 0.3s ease, background 0.3s ease;
+      font-size: 16px;
+    }
+    textarea:focus {
+        border-color: var(--color-accent-flow);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Button: Deep Purple Accent */
+    button {
+      padding: 14px 20px; 
+      border-radius: 18px; 
+      border: 0;
+      background: var(--color-accent-flow); 
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, background 0.2s ease;
+      box-shadow: 0 4px 15px rgba(109, 40, 217, 0.5); 
+      min-width: 65px;
+    }
+    button:hover:enabled { background: #5a20b7; }
+    button:active { transform: scale(0.95); } 
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Markdown blocks and Copy Button remain consistent */
+    pre {
+      background: rgba(0,0,0,0.4); 
+      border-radius: 12px;
+      padding: 15px;
+      overflow-x: auto;
+      margin-top: 12px;
+      font-size: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+    code {
+      background: rgba(255,255,255,0.1); 
+      padding: 3px 5px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--color-text-main);
+      border: 0;
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .copy-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      font-size: 14px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 14px;
+      border-radius: 16px;
+      color: var(--color-text-main);
+      box-shadow: none; 
+      min-width: 0;
+    }
+    .theme-toggle:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Animations */
+    @keyframes reveal {
+      0% { opacity: 0; filter: blur(15px); }
+      100% { opacity: 1; filter: blur(0); }
+    }
+    @keyframes bubbleIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ☀️ Light theme: Soft White/Blue */
+    body.light {
+      --color-bg-deep: #f0f4f7;
+      --color-text-main: #37474f; 
+      --color-glass-base: rgba(255, 255, 255, 0.95);
+      --color-border-subtle: rgba(0, 0, 0, 0.1);
+      --color-accent-flow: #4285F4;
+      --color-accent-user: #1A73E8;
+      
+      background: #f0f4f7;
+      background: radial-gradient(1200px 800px at 20% 20%, rgba(66, 133, 244, 0.1) 0%, transparent 60%),
+                  radial-gradient(1200px 800px at 80% 70%, rgba(26, 115, 232, 0.1) 0%, transparent 60%),
+                  linear-gradient(180deg, #ffffff, #f0f4f7);
+    }
+    body.light .ambain {
+        filter: blur(80px) saturate(120%);
+    }
+    body.light .ambain .blob {
+        opacity: 0.35;
+    }
+    body.light .ambain .blob.one { background: radial-gradient(circle at 30% 30%, var(--color-accent-flow), transparent 60%); }
+    body.light .ambain .blob.two { background: radial-gradient(circle at 70% 30%, var(--color-accent-user), transparent 60%); }
+    body.light .ambain .blob.three { background: radial-gradient(circle at 50% 50%, #AECBFA, transparent 65%); }
+    
+    body.light header,
+    body.light .input-bar {
+      background: rgba(240, 244, 247, 0.85); 
+      border-color: rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    }
+    body.light .msg {
+      background: var(--color-glass-base);
+      border-color: rgba(0, 0, 0, 0.1);
+      color: var(--color-text-main);
+    }
+    body.light .msg.user {
+      background: rgba(66, 133, 244, 0.1); 
+      border-color: rgba(66, 133, 244, 0.2);
+    }
+    body.light textarea {
+      background: #ffffff;
+      color: var(--color-text-main);
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+    body.light textarea:focus {
+        border-color: var(--color-accent-flow);
+        background: #ffffff;
+    }
+    body.light button {
+        background: var(--color-accent-flow);
+        box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+    }
+    body.light pre {
+      background: rgba(0,0,0,0.05);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    body.light code {
+        background: rgba(0,0,0,0.05);
+    }
+    body.light .copy-btn {
+        background: rgba(0, 0, 0, 0.1);
+        color: var(--color-text-main);
+    }
+    body.light .theme-toggle {
+        color: var(--color-text-main);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="ambain">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+  </div>
+
+  <div class="app">
+    <header>
+      <div class="title">
+        <strong>Kawnew A.i</strong>
+        <div class="subtitle">Advanced Ambient UI | Gemini 2.5 Flash</div>
+      </div>
+      <button class="theme-toggle" id="themeToggle">☀ Light</button>
+    </header>
+
+    <div id="chat" class="chat"></div>
+
+    <div class="input-bar">
+      <textarea id="input" placeholder="พิมพ์คำถามของคุณ..." rows="1"></textarea>
+      <button id="send">ส่ง</button>
+    </div>
+  </div>
+
+  <script>
+    // ====== API config (ใส่คีย์จริงของคุณ) ======
+    const API_KEY = "AIzaSyDq9xDbqrWLFSWdZOKuNuDd30q_5SoSHyE"; 
+    const MODEL = "gemini-2.5-flash";
+    const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+
+    // ====== Elements ======
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
+    const toggleBtn = document.getElementById("themeToggle");
+    const history = [];
+
+    // ====== Helpers ======
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function parseMarkdown(text) {
+      text = text.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${escapeHtml(code.trim())}</code><button class='copy-btn'>Copy</button></pre>`);
+      text = text.replace(/`([^`]+)`/g, (_, code) => `<code>${escapeHtml(code)}</code>`);
+      text = text.replace(/\*\*(.+?)\*\*/g, (_, bold) => `<b>${bold}</b>`);
+      text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => `<a href="${url}" target="_blank" style="color: inherit; text-decoration: underline;">${escapeHtml(label)}</a>`);
+      return text;
+    }
+
+    function enhanceCodeBlocks(container) {
+      container.querySelectorAll(".copy-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const code = btn.parentElement.querySelector("code").textContent;
+          navigator.clipboard.writeText(code);
+          btn.textContent = "Copied!";
+          setTimeout(() => (btn.textContent = "Copy"), 1500);
+        });
+      });
+    }
+
+    function addMsg(text, role = "ai") {
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      if (role === 'ai') {
+        div.style.animationDelay = '0.05s'; 
+      }
+      div.innerHTML = parseMarkdown(text);
+      chatEl.appendChild(div);
+      setTimeout(() => { chatEl.scrollTop = chatEl.scrollHeight; }, 150); 
+      enhanceCodeBlocks(div);
+      return div;
+    }
+
+    async function askGemini(prompt) {
+        const contents = [
+            ...history.map(h => ({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] })),
+            { role: "user", parts: [{ text: prompt }] }
+        ];
+
+        const payload = {
+            contents,
+            generationConfig: { temperature: 0.5, topP: 0.9, topK: 40, maxOutputTokens: 2048 }
+        };
+
+        try {
+            const res = await fetch(ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(`API error: ${res.status} ${err}`);
+            }
+
+            const data = await res.json();
+            const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+            return answer;
+        } catch (error) {
+            console.error("Gemini API Error:", error);
+            return `❗เกิดข้อผิดพลาด: ${error.message}`;
+        }
+    }
+
+    // ====== Send handler ======
+    async function handleSend() {
+      const q = inputEl.value.trim();
+      if (!q) return;
+
+      inputEl.style.height = "52px"; 
+      inputEl.value = "";
+
+      sendBtn.disabled = true;
+
+      history.push({ role: "user", text: q });
+      addMsg(q, "user");
+
+      const aiDiv = addMsg("✦ กำลังประมวลผล...", "ai");
+
+      try {
+        const answer = await askGemini(q);
+        aiDiv.innerHTML = "";
+        if (!answer || answer.includes("❗เกิดข้อผิดพลาด")) {
+          aiDiv.innerHTML = answer; 
+        } else {
+          aiDiv.innerHTML = parseMarkdown(answer);
+          enhanceCodeBlocks(aiDiv);
+          if (!answer.includes("❗เกิดข้อผิดพลาด")) {
+            history.push({ role: "ai", text: answer });
+          }
+        }
+      } catch(e) {
+        aiDiv.innerHTML = `<b>เกิดข้อผิดพลาดที่ไม่คาดคิด</b>\n${escapeHtml(e.message)}`;
+      } finally {
+        sendBtn.disabled = false;
+        setTimeout(() => { chatEl.scrollTop = chatEl.scrollHeight; }, 150);
+      }
+    }
+
+    // ====== Events ======
+    sendBtn.addEventListener("click", handleSend);
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+    inputEl.addEventListener("input", () => {
+      inputEl.style.height = "52px"; 
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 180) + "px"; 
+    });
+
+    // Theme toggle
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("light");
+      const isLight = document.body.classList.contains("light");
+      toggleBtn.textContent = isLight ? "🌙 Dark" : "☀ Light";
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    });
+
+    // Load saved theme preference
+    (function loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'dark'; // Default to dark
+        if (savedTheme === 'light') {
+            document.body.classList.add("light");
+            toggleBtn.textContent = "🌙 Dark";
+        } else {
+            toggleBtn.textContent = "☀ Light";
+        }
+    })();
+
+
+    // ====== Entrance: welcome ======
+    window.addEventListener("load", () => {
+      setTimeout(() => addMsg("👋 **ระบบ Ambient Display ทำงานแล้ว!** สัมผัสถึงความลึกและมิติของพื้นหลังได้เลยครับ", "ai"), 1000);
+      setTimeout(() => addMsg("UI นี้ได้แรงบันดาลใจจากระบบรักษาความปลอดภัย **Advanced System** พร้อม Glassmorphism ที่คมชัด", "ai"), 2500);
+    });
+  </script>
+</body>
+</html>
